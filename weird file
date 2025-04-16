@@ -1,0 +1,179 @@
+import pygame
+import random
+import math
+
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 800, 600
+GRID_SIZE = 50
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+GREEN = (0, 255, 0)
+BLACK = (0, 0, 0)
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Maze Shooter")
+font = pygame.font.SysFont(None, 36)
+clock = pygame.time.Clock()
+
+# Maze grid
+maze = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1],
+    [1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1],
+    [1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1],
+    [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 2, 1, 0, 1],
+]
+
+# Entities
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, RED, (15, 15), 15)
+        self.rect = self.image.get_rect(center=(25, 75))
+        self.speed = 4
+        self.health = 3
+
+    def move(self, keys):
+        dx, dy = 0, 0
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]: dx = -self.speed
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]: dx = self.speed
+        if keys[pygame.K_UP] or keys[pygame.K_w]: dy = -self.speed
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]: dy = self.speed
+
+        self.rect.move_ip(dx, dy)
+        if check_wall_collision(self.rect):
+            self.rect.move_ip(-dx, -dy)
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, pos):
+        super().__init__()
+        self.image = pygame.Surface((30, 30))
+        self.image.fill(BLUE)
+        self.rect = self.image.get_rect(center=pos)
+        self.speed = 2
+
+    def update(self, player_pos):
+        dx = player_pos[0] - self.rect.centerx
+        dy = player_pos[1] - self.rect.centery
+        dist = math.hypot(dx, dy)
+        if dist == 0: return
+        dx, dy = dx / dist, dy / dist
+        self.rect.x += dx * self.speed
+        self.rect.y += dy * self.speed
+        if check_wall_collision(self.rect):
+            self.rect.x -= dx * self.speed
+            self.rect.y -= dy * self.speed
+
+class Projectile(pygame.sprite.Sprite):
+    def __init__(self, start_pos, target):
+        super().__init__()
+        self.image = pygame.Surface((10, 10))
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect(center=start_pos)
+        dx = target[0] - start_pos[0]
+        dy = target[1] - start_pos[1]
+        dist = math.hypot(dx, dy)
+        self.dir = (dx / dist, dy / dist)
+        self.speed = 8
+
+    def update(self):
+        self.rect.x += self.dir[0] * self.speed
+        self.rect.y += self.dir[1] * self.speed
+        if check_wall_collision(self.rect):
+            self.kill()
+
+# Maze collision detection
+def check_wall_collision(rect):
+    for row in range(len(maze)):
+        for col in range(len(maze[row])):
+            if maze[row][col] == 1:
+                wall = pygame.Rect(col * GRID_SIZE, row * GRID_SIZE, GRID_SIZE, GRID_SIZE)
+                if rect.colliderect(wall):
+                    return True
+    return False
+
+# Maze drawing
+def draw_maze():
+    for row in range(len(maze)):
+        for col in range(len(maze[row])):
+            x, y = col * GRID_SIZE, row * GRID_SIZE
+            if maze[row][col] == 1:
+                pygame.draw.rect(screen, BLUE, (x, y, GRID_SIZE, GRID_SIZE))
+            elif maze[row][col] == 2:
+                pygame.draw.rect(screen, YELLOW, (x, y, GRID_SIZE, GRID_SIZE))
+
+# Setup
+player = Player()
+player_group = pygame.sprite.GroupSingle(player)
+enemies = pygame.sprite.Group()
+projectiles = pygame.sprite.Group()
+score = 0
+spawn_timer = 0
+
+# Game loop
+running = True
+while running:
+    screen.fill(WHITE)
+    keys = pygame.key.get_pressed()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            projectile = Projectile(player.rect.center, pygame.mouse.get_pos())
+            projectiles.add(projectile)
+
+    player.move(keys)
+
+    # Spawn enemies
+    spawn_timer += 1
+    if spawn_timer > 90 and len(enemies) < 5:
+        while True:
+            col = random.randint(0, 15)
+            row = random.randint(0, 11)
+            if maze[row][col] == 0:
+                enemy = Enemy((col * GRID_SIZE + 25, row * GRID_SIZE + 25))
+                enemies.add(enemy)
+                break
+        spawn_timer = 0
+
+    # Update
+    enemies.update(player.rect.center)
+    projectiles.update()
+
+    # Collisions
+    for enemy in pygame.sprite.spritecollide(player, enemies, False):
+        player.health -= 1
+        enemy.kill()
+        if player.health <= 0:
+            print("Game Over!")
+            running = False
+
+    pygame.sprite.groupcollide(projectiles, enemies, True, True)
+
+    # Draw
+    draw_maze()
+    player_group.draw(screen)
+    enemies.draw(screen)
+    projectiles.draw(screen)
+
+    # Health display
+    for i in range(player.health):
+        pygame.draw.rect(screen, RED, (10 + i * 35, 10, 25, 25))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
