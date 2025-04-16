@@ -1,8 +1,13 @@
-we are the 3 sigma boys from NYJC
-We are making a game via python (pygame) which is essentially a maze where the player has to battle and defeat various monsters (entities) and make it to the end.
+# Top-down shooter
+To launch the game, just open `main.exe` file.
 
-1 Get maze graphics down (draw out the walls, obstacles within the game)
- 2 Player mechanics (basic player visualisation (square), player movement mechanics, interactions with wall etc)
- 3 Entities (this might require OOP :( )
- 4 Aesthetics: Assets, music, background
- 5 Additional upgrades: Once done with first maze, move on to second “level”? Boss fight? The target is to do one game “level” similar to like a campaign story. Add dialogue
+If you want to play your own modified version of the game, you need to install dependencies first.
+```
+pip install -r requirements.txt
+```
+
+### Controls
+- `WASD` movement
+- Shoot with mouse
+- After dying, press `R` button to restart
+- Change weapons with keys `1`, `2` and `3` for pistol, shotgun and machine gun respectively
