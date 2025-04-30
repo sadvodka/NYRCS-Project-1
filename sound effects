@@ -1,1 +1,43 @@
+enemyDeathSound = pygame.mixer.Sound("sounds/enemy_death.wav")
+backgroundEnemySound = pygame.mixer.Sound("sounds/enemy_presence.wav")
+projectileSound = pygame.mixer.Sound("sounds/projectile.wav")
 
+backgroundEnemySound.set_volume(0.2) 
+
+
+
+
+def process_mouse(mouse, hero):
+    if mouse[0]:
+        hero.sprite.shoot(pygame.mouse.get_pos())
+        projectileSound.play()
+
+
+
+
+if enemiesHit:
+    proj.kill()
+    enemyDeathSound.play()
+    score += len(enemiesHit)
+
+
+if lastEnemy < currentTime - 200 and len(enemies) < 10:
+    spawnSide = random.random()
+    if spawnSide < 0.25:
+        enemies.add(Enemy((0, random.randint(0, size[1]))))
+    elif spawnSide < 0.5:
+        enemies.add(Enemy((size[0], random.randint(0, size[1]))))
+    elif spawnSide < 0.75:
+        enemies.add(Enemy((random.randint(0, size[0]), 0)))
+    else:
+        enemies.add(Enemy((random.randint(0, size[0]), size[1])))
+    lastEnemy = currentTime
+    
+    # Start background sound if not already playing
+    if not pygame.mixer.get_busy():
+        backgroundEnemySound.play(loops=-1)
+
+
+
+if len(enemies) == 0:
+    backgroundEnemySound.stop()
